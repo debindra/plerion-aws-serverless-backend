@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Serverless Http Api
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+  CustomBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: SuperBus2
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: serverless-http-api-s3-bucket
+  AddProductLamda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.addProduct
+      Events:
+        AddProductApi:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: MyHttpApi
+            Path: /products
+            Method: POST
+      Description: A  HTTP post method to add product to a DynamoDB table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ProductsDynamoDBTable
+      - EventBridgePutEventsPolicy:
+          EventBusName:
+            Ref: CustomBus
+      CodeUri: AddProductLamda
+    Metadata:
+      SamResourceId: AddProductLamda
+  GetProductsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.getProducts
+      Events:
+        GetProductsApi:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: MyHttpApi
+            Path: /products
+            Method: GET
+      Description: A  HTTP get method to get all products from a DynamoDB table.
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ProductsDynamoDBTable
+      CodeUri: GetProductsLambda
+    Metadata:
+      SamResourceId: GetProductsLambda
+  DeleteProductLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.deleteProduct
+      Events:
+        DeleteProductApi:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: MyHttpApi
+            Path: /products/{id}
+            Method: DELETE
+      Description: A HTTP delete method to delete a product by product id from a DynamoDB
+        table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ProductsDynamoDBTable
+      CodeUri: DeleteProductLambda
+    Metadata:
+      SamResourceId: DeleteProductLambda
+  ThumbnailGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ThumbnailGeneratorFunction
+      Handler: app.generateProductThumbnail
+      Description: Lambda function to generate and store thumbnails
+      MemorySize: 256
+      Timeout: 10
+      Events:
+        ProductCreatedEvent:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              detail-type:
+              - ProductCreated
+      Policies:
+      - S3CrudPolicy:
+          BucketName:
+            Ref: MyS3Bucket
+      CodeUri: ThumbnailGeneratorFunction
+    Metadata:
+      SamResourceId: ThumbnailGeneratorFunction
+  ProductsDynamoDBTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Ref: ApplicationResourceGroup
+      AutoConfigurationEnabled: 'true'
+Globals:
+  Function:
+    Runtime: nodejs14.x
+    CodeUri: src/
+    Timeout: 180
+    Environment:
+      Variables:
+        DYNAMODB_TABLE:
+          Ref: ProductsDynamoDBTable
+        BUCKET_NAME:
+          Ref: MyS3Bucket
+        EVENT_BUS_NAME:
+          Ref: CustomBus
