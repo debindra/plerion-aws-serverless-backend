@@ -147,5 +147,3 @@ Globals:
         DYNAMODB_TABLE: !Ref ProductsDynamoDBTable 
         BUCKET_NAME: !Ref MyS3Bucket 
         EVENT_BUS_NAME: !Ref CustomBus
-
-# HttpApi:
