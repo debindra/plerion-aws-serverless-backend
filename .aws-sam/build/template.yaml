@@ -5,6 +5,15 @@ Resources:
   MyHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      CorsConfiguration:
+        AllowOrigins:
+        - '*'
+        AllowMethods:
+        - GET
+        - POST
+        - DELETE
+        AllowHeaders:
+        - Content-Type
       StageName: prod
   CustomBus:
     Type: AWS::Events::EventBus

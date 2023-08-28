@@ -1,7 +1,7 @@
 const AWS = require("aws-sdk");
 
-const sharp = require('sharp'); // For image processing
-const axios = require('axios');
+// const sharp = require('sharp'); // For image processing
+// const axios = require('axios');
 const eventBridge = new AWS.EventBridge();
 
 const s3 = new AWS.S3();
@@ -44,41 +44,41 @@ exports.addProduct = async (event) => {
         await dynamoDB.put(params).promise();
     
     // Emit an event to EventBridge
-    const eventDetail = {
-        product_id: newProduct.id, // Include relevant details for the thumbnail generation
-        image_url: newProduct.imageUrl
-      };
+    // const eventDetail = {
+    //     product_id: newProduct.id, // Include relevant details for the thumbnail generation
+    //     image_url: newProduct.imageUrl
+    //   };
   
-    await eventBridge.putEvents({
-        Entries: [
-          {
-            Source: 'custom.product',
-            DetailType: 'ProductCreated',
-            Detail: JSON.stringify(eventDetail),
-            EventBusName: process.env.EVENT_BUS_NAME
-          },
-        ],
-      }).promise();
+    // await eventBridge.putEvents({
+    //     Entries: [
+    //       {
+    //         Source: 'custom.product',
+    //         DetailType: 'ProductCreated',
+    //         Detail: JSON.stringify(eventDetail),
+    //         EventBusName: process.env.EVENT_BUS_NAME
+    //       },
+    //     ],
+    //   }).promise();
 
       //Save image to S3 bucket
 
-    const response = await axios.get(newProduct.imageUrl, { responseType: 'arraybuffer' });
-    const imageBuffer = Buffer.from(response.data, 'binary');
+    // const response = await axios.get(newProduct.imageUrl, { responseType: 'arraybuffer' });
+    // const imageBuffer = Buffer.from(response.data, 'binary');
         
-        const thumbnailBuffer = await sharp(imageBuffer)
-            .resize(100, 100) // Adjust the size as needed
-            .toBuffer();
+    //     const thumbnailBuffer = await sharp(imageBuffer)
+    //         .resize(100, 100) // Adjust the size as needed
+    //         .toBuffer();
         
-        const thumbnailKey = `thumbnails/${product_id}.jpg`;
+    //     const thumbnailKey = `thumbnails/${product_id}.jpg`;
         
-        await s3.putObject({
-            Bucket: bucketName,
-            Key: thumbnailKey,
-            Body: thumbnailBuffer,
-            ContentType: 'image/jpeg',
-        }).promise();
+    //     await s3.putObject({
+    //         Bucket: bucketName,
+    //         Key: thumbnailKey,
+    //         Body: thumbnailBuffer,
+    //         ContentType: 'image/jpeg',
+    //     }).promise();
     
-        const thumbnailUrl = `https://${bucketName}.s3.amazonaws.com/${thumbnailKey}`;
+        // const thumbnailUrl = `https://${bucketName}.s3.amazonaws.com/${thumbnailKey}`;
         
       //end 
 
@@ -128,7 +128,7 @@ exports.deleteProduct = async (event) => {
       },
     };
 
-    // await dynamoDB.delete(params).promise();
+    await dynamoDB.delete(params).promise();
 
     return {
       statusCode: 200,
